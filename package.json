@@ -1,0 +1,12 @@
+{
+    "name": "ai-coding-learner",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:api": "npm run dev --workspace=apps/api"
+    }
+}
