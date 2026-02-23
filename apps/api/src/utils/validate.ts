@@ -23,3 +23,7 @@ export function isUser(value: unknown): value is User { //return type is "value 
         "name" in value
     );
 }
+
+export function isValidName(name: string): boolean {
+    return name.length > 1 && name.length <= 50;
+}
