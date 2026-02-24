@@ -1,0 +1,1 @@
+react: no more manual changing DOM, UI is a function of state, component-based, link doesn't create new html but change old ones

@@ -32,8 +32,8 @@ You are learning like LEGO:
 - Then connect it to the existing system
 - Repeat daily until you can build and reason about full production systems
 
-**Target workload: approximately 2-3 hours of hands-on work per day.**
-Each day should include enough concepts + code that you are meaningfully stretching — not just skimming. If a day feels short, ask for more depth or an extension task.
+**Target workload: approximately 3-4 hours of hands-on work per day.**
+Each day should include enough concepts + code that you are meaningfully stretching — not just skimming. Code should be at least in the hundreds of unique and meaningful lines that are not just repetitive code.
 
 ---
 
@@ -167,7 +167,7 @@ Then I will provide:
 ## Progress Log (We Will Fill This Daily)
 
 - Day 1: [x] Monorepo setup, TypeScript basics, 3-tier architecture, npm workspaces, tsconfig structure. Notes: `notes/day1/`
-- Day 2: [ ]
+- Day 2: [x] TypeScript fundamentals: interfaces, type aliases, literal unions, generics, unknown/any, type guards, modules, async/await, normalization. Notes: `notes/day2/`
 - Day 3: [ ]
 - Day 4: [ ]
 - Day 5: [ ]
