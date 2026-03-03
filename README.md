@@ -1,149 +1,73 @@
-# AI Coding Learner Tool - 30 Day Build Plan
+# LearnMode — AI-Guided IDE Learning System
 
-This project is your hands-on path to learning production software engineering by building a real product:
-
-**An AI-based coding learner app** that teaches people how to build production software across languages, databases, deployment, and agent-style AI workflows.
-
-Tech stack target:
-- TypeScript
-- React
-- Node.js (Express/Fastify)
-- PostgreSQL (Supabase)
-- Docker
-- Cloud deployment
-- Kubernetes
-- AI APIs + agent patterns
+A production-quality learning tool that takes a user's project request, generates a skill tree, and guides them through it with mini-lectures, gated implementation, a hints ladder, and side quests — all accessible from a web dashboard and VS Code/Cursor extension.
 
 ---
 
-## How We Will Work (Daily)
+## Product Vision
 
-Every day, when you ask for "today's plan", I will do 3 things:
+**What it does:**
+1. User submits a project request (e.g. "build a production todo app")
+2. AI planner generates a skill tree: modules → submodules
+3. For each submodule: mini-lecture → quiz → gated implementation
+4. AI generates boilerplate only. User must write all core logic in marked TODO regions
+5. `learnmode check` runs tests + validates TODO regions + returns a structured report
+6. Hints ladder: from concept reminder → pseudocode → partial skeleton (never full solution)
+7. Side quests: implement an alternative approach and compare measurable tradeoffs
+8. Progress is tracked. Dependencies enforce order (Duolingo-style)
 
-1. **Teach concepts first**
-   - Explain today's engineering principles, tradeoffs, and production practices.
-2. **Code step-by-step**
-   - Generate code in small chunks so you can manually re-type and understand each piece.
-3. **Quiz + test + summarize**
-   - Short quiz, practical checks, and summary to confirm understanding.
+**Where it runs:**
+- Web dashboard (React, localhost)
+- VS Code / Cursor extension (sidebar panel + inline diagnostics)
+- CLI (`learnmode init`, `learnmode check`, `learnmode hint`)
 
-You are learning like LEGO:
-- First understand each piece
-- Then connect it to the existing system
-- Repeat daily until you can build and reason about full production systems
-
-**Target workload: approximately 3-4 hours of hands-on work per day.**
-Each day should include enough concepts + code that you are meaningfully stretching — not just skimming. Code should be at least in the hundreds of unique and meaningful lines that are not just repetitive code.
-
----
-
-## Product Vision (MVP -> Production)
-
-Core product outcomes:
-- User can sign in
-- User can pick a learning track (Python, TypeScript, Java, etc.)
-- App creates daily lessons and coding tasks with AI
-- User submits answers/code
-- AI reviews correctness and gives feedback
-- Progress dashboard tracks concepts mastered
-- Admin/analytics view tracks usage and outcomes
-
-Production goals:
-- Clean architecture
-- Testing strategy
-- Observability (logs/metrics/errors)
-- Secure auth and data access
-- CI/CD
-- Containerization + orchestration
+**MVP template: "Todo Pro"**
+- Frontend: React + Vite
+- Backend: Node + Express
+- DB: Postgres + Prisma
+- Auth: JWT
+- Deployment: Docker Compose
+- Observability: structured logging + request IDs + health endpoint
 
 ---
 
-## Month Roadmap (High Level)
+## Architecture: Engine + Shells
 
-### Week 1 - Foundation + Local Product Skeleton
-- Day 1: Product scope, architecture basics, monorepo setup
-- Day 2: TypeScript fundamentals for backend/frontend
-- Day 3: React app shell + routing + UI system
-- Day 4: Node API skeleton + layered structure
-- Day 5: REST API design, validation, error handling
-- Day 6: PostgreSQL/Supabase schema design basics
-- Day 7: Full stack "hello flow" (frontend -> backend -> DB)
+```
+Dashboard (React)  /  VS Code Extension  /  CLI
+         ↓                   ↓               ↓
+              Engine API  (Node + Express)
+                      ↓
+          .learnmode/  ←  course templates
+          state.json       lecture.md
+                           quiz.json
+                           tasks.json
+                           hints.json
+                           tests/
+```
 
-### Week 2 - Core Features + Data
-- Day 8: Auth fundamentals (sessions/JWT, RBAC intro)
-- Day 9: User/profile/learning-track models
-- Day 10: Lesson generation endpoint with AI provider abstraction
-- Day 11: Submission + feedback pipeline
-- Day 12: Prompt engineering + guardrails basics
-- Day 13: Background jobs/queues intro
-- Day 14: Integration tests for core flow
-
-### Week 3 - Production Quality
-- Day 15: Caching, rate limiting, idempotency
-- Day 16: Logging, tracing, monitoring
-- Day 17: Security hardening (OWASP basics)
-- Day 18: Dockerize frontend + backend + DB dependencies
-- Day 19: CI pipeline (lint/test/build)
-- Day 20: Deployment strategy (staging vs prod)
-- Day 21: Performance profiling + optimization loop
-
-### Week 4 - Cloud + Kubernetes + Agent Patterns
-- Day 22: Kubernetes core objects (Pod/Deploy/Service)
-- Day 23: Config + secrets + health probes
-- Day 24: Supabase in cloud workflow + migrations
-- Day 25: Agentic workflows (tool use, memory, planning loops)
-- Day 26: Multi-step tutor agent orchestration
-- Day 27: Evaluation for AI outputs + reliability gates
-- Day 28: Cost control + latency optimization
-- Day 29: Final polish + docs + demo prep
-- Day 30: Capstone review + retrospective + next 60-day plan
+- **Engine** (`apps/engine`): owns course graph, state, validation, test running, LLM calls. Exposes a local HTTP API.
+- **Dashboard** (`apps/dashboard`): React UI — skill tree, lesson, quiz, check results, hints, side quests.
+- **VS Code Extension** (`apps/vscode-extension`): sidebar tree, webview for lessons, inline diagnostics, CodeLens.
+- **Core** (`packages/core`): shared TypeScript types, validators, parsers used by all packages.
+- **Course Templates** (`packages/course-templates/todo-pro`): the actual learning content.
 
 ---
 
-## Daily Session Template (What You Will Receive)
+## Repo Structure
 
-For each day I will give:
-
-1. **Learning objectives** (what you should know by end of day)
-2. **Concept lesson** (beginner-friendly explanations + production context)
-3. **Build steps** (small code chunks, each explained)
-4. **Manual typing checklist** (what you must type and run)
-5. **Verification** (commands + expected behavior)
-6. **Quiz** (concept + code comprehension)
-7. **Reflection** (what felt hard + what to revise tomorrow)
-
-**At the end of every day, create two files in `notes/dayX/`:**
-- `QA.md` — every quiz question with its full answer and code examples
-- `job.md` — what we built that day, explanations of all key concepts introduced, commands reference, and any bugs/lessons learned
-
-Update the Progress Log below with a one-line summary and link to the notes folder.
-
----
-
-## Ground Rules for Learning
-
-- You manually type code (important for memory and fluency).
-- You ask "why" whenever something is unclear.
-- We keep architecture decisions documented.
-- We incrementally refactor instead of over-designing upfront.
-- **Every day includes software design reasoning** — not just "how to code it" but "why it's designed this way." This covers data modeling, interface design, tradeoffs between approaches, and production consequences of each choice.
-
----
-
-## Suggested Repository Shape (We Will Build Toward This)
-
-```txt
+```
 codingpractice/
   apps/
-    web/                 # React frontend
-    api/                 # Node backend
+    engine/               Node.js + TypeScript API server
+    dashboard/            React frontend
+    vscode-extension/     VS Code / Cursor extension
   packages/
-    ui/                  # shared UI components
-    config/              # eslint/tsconfig/shared configs
-    types/               # shared TypeScript types
+    core/                 Shared types + validators
+    course-templates/
+      todo-pro/           MVP course content + template code
   infra/
     docker/
-    k8s/
   docs/
     architecture/
   README.md
@@ -151,23 +75,131 @@ codingpractice/
 
 ---
 
-## How To Start Day 1
+## How We Work (Daily)
 
-When ready, ask:
+Each day follows this structure:
 
-**"Teach me Day 1."**
+1. **Concepts first** — engineering principles, production context, design reasoning
+2. **Build step by step** — one chunk at a time, explained in detail before typing
+3. **Reflection** — what felt hard, what to revisit
 
-Then I will provide:
-- Day 1 concepts (system design basics + architecture + toolchain)
-- Step-by-step code/project setup with detailed explanations
-- End-of-day quiz and practical test
+Steps are given **one at a time**. Do not move to the next step until you've typed and understood the current one.
+
+**Target: ~2 hours of hands-on work per day.**
+
+**At the end of every day, I will create `notes/dayX/job.md`** covering:
+- What we built
+- Key concepts explained
+- Design decisions and why
+- Commands reference
+- Bugs and lessons learned
 
 ---
 
-## Progress Log (We Will Fill This Daily)
+## Ground Rules
 
-- Day 1: [x] Monorepo setup, TypeScript basics, 3-tier architecture, npm workspaces, tsconfig structure. Notes: `notes/day1/`
-- Day 2: [x] TypeScript fundamentals: interfaces, type aliases, literal unions, generics, unknown/any, type guards, modules, async/await, normalization. Notes: `notes/day2/`
+- Manually type all code (no copy-paste — typing builds fluency)
+- Ask "why" whenever something is unclear
+- We prefer simple, correct, and testable over clever
+- Every design decision gets explained, not just the implementation
+- We incrementally build — no over-engineering upfront
+
+---
+
+## 30-Day Roadmap
+
+### Week 1 — Foundation + Engine Skeleton
+
+- Day 1: Monorepo setup, project structure, TypeScript config ✓ (carries over)
+- Day 2: TypeScript fundamentals ✓ (carries over)
+- Day 3: Engine skeleton — Node/Express server, course graph types, basic routes
+- Day 4: Course template format — YAML/JSON schema, file parsing, content model
+- Day 5: REST API — Zod validation, error handling, serve tree + content endpoints
+- Day 6: File-based state persistence — `.learnmode/state.json`, state machine rules
+- Day 7: Dashboard shell — React + routing + skill tree placeholder UI
+
+### Week 2 — Core Learning Features
+
+- Day 8: Lecture content serving + markdown rendering in dashboard
+- Day 9: Quiz system — grading logic, gating, state updates
+- Day 10: TODO region system — markers, detection, completion checking
+- Day 11: Test runner integration — run tests, parse output, structured report
+- Day 12: Hints ladder — 4 levels, policy enforcement, LLM-powered hints
+- Day 13: Dashboard skill tree UI — node states, dependency visualization
+- Day 14: Dashboard submodule page — Learn / Quiz / Build tabs
+
+### Week 3 — Advanced Features + Production Quality
+
+- Day 15: Side quest system + benchmark harness (ORM vs raw SQL, measure latency + query count)
+- Day 16: LLM integration — planner (request → tree), hint generation with guardrails
+- Day 17: VS Code extension shell — sidebar panel, webview, command palette
+- Day 18: Extension inline features — diagnostics, CodeLens above TODO regions
+- Day 19: Docker + Docker Compose for the engine + dashboard + Postgres
+- Day 20: Engine observability — request IDs, structured logs, health endpoint, telemetry file
+- Day 21: CI pipeline — lint, typecheck, test on push
+
+### Week 4 — Course Content + Polish + Ship
+
+- Day 22: Todo Pro template — Module 1 (Setup) + Module 2 (Backend Basics) content
+- Day 23: Todo Pro template — Module 3 (Database) + Module 4 (Frontend) content
+- Day 24: Todo Pro template — Module 5 (Security) + Module 6 (Deployment) content
+- Day 25: Performance optimization + caching in engine
+- Day 26: Security hardening — auth for engine, input sanitization
+- Day 27: Deployment — Render or Fly.io guide + production config
+- Day 28: VS Code extension polish + packaging
+- Day 29: Final polish + end-to-end demo
+- Day 30: Capstone retrospective + next 60-day plan
+
+---
+
+## Engine API (MVP)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/api/project/init` | Generate skill tree from user request |
+| GET | `/api/tree` | Return modules + statuses + dependencies |
+| GET | `/api/submodule/:id/content` | Lecture blocks + quiz |
+| POST | `/api/submodule/:id/quiz/submit` | Grade quiz + update eligibility |
+| POST | `/api/submodule/:id/check` | Run tests + TODO checks → structured report |
+| POST | `/api/submodule/:id/hint` | Return hint at requested level |
+| POST | `/api/submodule/:id/sidequest/run` | Run benchmark + return comparison |
+
+---
+
+## Submodule State Machine
+
+```
+locked → available → in_progress → completed
+```
+
+A submodule becomes **completed** only when:
+- Quiz passed (≥ 80%)
+- All TODO regions filled
+- All tests pass (public + hidden)
+
+---
+
+## TODO Region Format (Core Differentiator)
+
+```typescript
+// === LEARNMODE: TODO id=service_createTodo ===
+// Implement createTodo(userId, input):
+// - validate input
+// - persist todo
+// - return created todo DTO
+// === END ===
+```
+
+AI may generate imports, boilerplate, route wiring, and interfaces.
+AI may NOT generate code inside TODO regions.
+`learnmode check` validates completion and runs tests.
+
+---
+
+## Progress Log
+
+- Day 1: [x] Monorepo setup, TypeScript config, npm workspaces — carries over
+- Day 2: [x] TypeScript fundamentals: interfaces, generics, modules, async/await — carries over
 - Day 3: [ ]
 - Day 4: [ ]
 - Day 5: [ ]
@@ -196,4 +228,3 @@ Then I will provide:
 - Day 28: [ ]
 - Day 29: [ ]
 - Day 30: [ ]
-

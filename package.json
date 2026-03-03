@@ -1,13 +1,14 @@
 {
-    "name": "ai-coding-learner",
-    "version": "1.0.0",
-    "private": true,
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
-    "scripts": {
-        "dev:api": "npm run dev --workspace=apps/api",
-        "dev:web": "npm run dev --workspace=apps/web"
-    }
+  "name": "learnmode",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:engine": "npm run dev --workspace=apps/engine",
+    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "build": "npm run build --workspaces"
+  }
 }
