@@ -31,6 +31,18 @@ A production-quality learning tool that takes a user's project request, generate
 
 ---
 
+## LLM Provider
+
+This project uses the **Google Gemini API** for:
+- Planner: converting a user project request into a module/submodule skill tree
+- Hint generation: level-constrained hints that never reveal full solutions
+- (Future) Quiz explanation and rubric grading
+
+The API key is stored in `apps/engine/.env` as `GEMINI_API_KEY=...` and is never committed to Git.
+To get started, create that file and add your key.
+
+---
+
 ## Architecture: Engine + Shells
 
 ```
@@ -85,7 +97,7 @@ Each day follows this structure:
 
 Steps are given **one at a time**. Do not move to the next step until you've typed and understood the current one.
 
-**Target: ~2 hours of hands-on work per day.**
+**Target: ~3 hours of hands-on work per day.**
 
 **At the end of every day, I will create `notes/dayX/job.md`** covering:
 - What we built
