@@ -85,7 +85,7 @@ Each day follows this structure:
 
 - Day 1: [x] Monorepo, TypeScript config, npm workspaces — carries over
 - Day 2: [x] TypeScript fundamentals: interfaces, generics, modules, async/await — carries over
-- Day 3: [ ]
+- Day 3: [x] Engine skeleton — Express, middleware pipeline, course graph types, health + tree routes. Notes: `notes/day3/`
 - Day 4: [ ]
 - Day 5: [ ]
 - Day 6: [ ]

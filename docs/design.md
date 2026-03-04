@@ -80,7 +80,7 @@ Gemini is the backbone of the entire product. It is responsible for:
    - Implementation gate: AI generates boilerplate, user writes core logic in TODO regions
    - Check results: red highlights for failing tests/regions + file/line links
    - Hints: L1 concept reminder → L2 pseudocode → L3 skeleton with blanks → L4 one function outline
-5. **Side quests** — optional but recommended: implement alternative approach + compare measurably
+5. **Side quests** — one for each submodule: implement alternative approach/compare tradeoffs/explore relevant system design principles/visualize efficiency with scripts
 
 ---
 
@@ -123,7 +123,7 @@ Gemini is the backbone of the entire product. It is responsible for:
 - Deployment: Docker Compose (local), optional Render/Fly.io guide
 - Observability: structured logging + request IDs + basic metrics endpoint
 
-### Module Tree
+### Example Module Tree
 
 **Module 1: Setup**
 - 1.1 Repo scaffold (monorepo folders)
@@ -351,16 +351,3 @@ codingpractice/
 6. One side quest with measurement (benchmark harness + compare UI)
 7. VS Code extension shell (tree, run check, diagnostics)
 
----
-
-## 16. Production Baseline Embedded in Template
-
-Every Todo Pro journey teaches:
-- env var handling (dotenv, `.env.example`)
-- input validation (Zod)
-- centralized error handling
-- auth + authz checks
-- DB migrations
-- tests
-- dockerization
-- health endpoint + structured logs
