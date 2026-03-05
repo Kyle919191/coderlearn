@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "objectives": [
+    "Explain why we validate at the boundary of the system",
+    "Implement Create + List in a service layer",
+    "Distinguish DTO from DB model"
+  ],
+  "blocks": [
+    {
+      "type": "concept",
+      "id": "validation-boundaries",
+      "title": "Validate at the boundary",
+      "bullets": [
+        "Never trust req.body or external inputs",
+        "Reject invalid input early to simplify downstream logic"
+      ]
+    },
+    {
+      "type": "concept",
+      "id": "dto-vs-model",
+      "title": "DTO vs DB model",
+      "bullets": [
+        "DTO is your API contract",
+        "DB model is internal persistence representation"
+      ]
+    },
+    {
+      "type": "example",
+      "id": "example-notes",
+      "title": "Example: Notes service",
+      "constraints": {
+        "mustUseDifferentDomainObject": "notes",
+        "mustNotMirrorTodoExactFunctions": true
+      }
+    },
+    {
+      "type": "common_mistakes",
+      "id": "pitfalls",
+      "items": [
+        "DB calls inside controllers",
+        "Returning raw DB row with sensitive fields",
+        "Not scoping list results by userId"
+      ]
+    },
+    {
+      "type": "check_understanding",
+      "id": "cu",
+      "questions": [
+        { "type": "short", "prompt": "Where should validation happen and why?" },
+        { "type": "short", "prompt": "Why avoid DB logic inside controllers?" }
+      ]
+    }
+  ],
+  "quizSpec": {
+    "enabled": true,
+    "count": 6,
+    "types": ["mcq", "tradeoff"],
+    "passThreshold": 0.8
+  }
+}

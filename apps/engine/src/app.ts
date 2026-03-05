@@ -4,6 +4,7 @@ import { requestId } from "./middleware/requestId";
 import { errorHandler } from "./middleware/errorHandler";
 import healthRoutes from "./routes/health";
 import treeRoutes from "./routes/tree";
+import submoduleRoutes from "./routes/submodule";
 
 export function createApp(): Express { // order matters here !!!
     const app = express();
@@ -14,7 +15,7 @@ export function createApp(): Express { // order matters here !!!
 
     app.use("/health", healthRoutes);
     app.use("/api/tree", treeRoutes);
-
+    app.use("/api/submodule", submoduleRoutes);
     app.use(errorHandler); // bottom to catch route errors
 
     return app;

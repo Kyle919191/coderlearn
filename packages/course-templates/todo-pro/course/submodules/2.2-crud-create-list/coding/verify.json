@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "checkCommands": [
+    {
+      "id": "backend-tests",
+      "label": "Run backend test suite",
+      "cmd": "pnpm -C backend test",
+      "mustPass": true,
+      "timeoutSeconds": 20
+    },
+    {
+      "id": "backend-typecheck",
+      "label": "Typecheck backend",
+      "cmd": "pnpm -C backend typecheck",
+      "mustPass": false,
+      "timeoutSeconds": 20
+    }
+  ],
+  "todoCompletionRules": [
+    { "rule": "all_todo_regions_must_be_replaced", "todoIds": ["service_createTodo"] }
+  ],
+  "testGenerationSpec": {
+    "framework": "vitest",
+    "language": "ts",
+    "publicTests": {
+      "filePath": "backend/src/services/todos.test.ts",
+      "mustCover": [
+        "createTodo returns id and DTO shape",
+        "createTodo rejects empty title"
+      ]
+    },
+    "hiddenTests": {
+      "filePath": ".learnmode/tests_hidden/2.2/todos.hidden.test.ts",
+      "mustCover": ["reject long title", "does not leak across users"]
+    },
+    "safetyRules": {
+      "noNetwork": true,
+      "randomMustBeSeeded": true,
+      "maxRuntimeSeconds": 10
+    },
+    "freezePolicy": {
+      "freezeAfterFirstGeneration": true,
+      "regenerationAllowed": false
+    }
+  },
+  "resultParsing": { "testFramework": "vitest", "extractFailureFileAndLine": true }
+}

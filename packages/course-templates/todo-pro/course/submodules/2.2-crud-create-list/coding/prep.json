@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "boilerplatePlan": {
+    "allowedFiles": [
+      "backend/src/app.ts",
+      "backend/src/routes/todos.ts",
+      "backend/src/services/todos.ts",
+      "backend/src/schemas/todos.ts"
+    ],
+    "forbiddenEdits": [
+      { "rule": "do_not_edit_todo_regions" },
+      { "rule": "do_not_overwrite_user_files_without_patch" }
+    ],
+    "actions": [
+      { "type": "ensure_dependency", "pkgManager": "pnpm", "name": "zod", "where": "backend" },
+      { "type": "create_file", "path": "backend/src/routes/todos.ts", "templateId": "express_router_base" },
+      { "type": "create_file", "path": "backend/src/services/todos.ts", "templateId": "service_base" },
+      { "type": "create_file", "path": "backend/src/schemas/todos.ts", "templateId": "zod_schema_base" },
+      {
+        "type": "insert_snippet",
+        "path": "backend/src/app.ts",
+        "anchor": "// ROUTES",
+        "snippetId": "wire_todos_router",
+        "strategy": "insert_after_anchor"
+      }
+    ],
+    "patchOutput": {
+      "format": "unified_diff",
+      "mustBeIdempotent": true,
+      "maxChangedLines": 300
+    }
+  },
+  "testPreparation": {
+    "generateTestsNow": true,
+    "whereToWrite": {
+      "public": "backend/src/services/todos.test.ts",
+      "hidden": ".learnmode/tests_hidden/2.2/todos.hidden.test.ts"
+    }
+  }
+}

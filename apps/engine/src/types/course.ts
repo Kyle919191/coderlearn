@@ -1,4 +1,4 @@
-export type SubmoduleStatus = "locked" | "available" | "in_progress" | "completed";
+import type { SubmoduleStatus } from "@learnmode/core";
 
 export type TemplateId = "todo-pro";
 

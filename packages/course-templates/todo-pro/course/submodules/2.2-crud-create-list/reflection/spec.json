@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "prompts": [
+    "Where did you put validation and why?",
+    "What tradeoff does a service layer introduce?",
+    "What bug would you expect if you forgot to scope by userId?"
+  ],
+  "rubric": {
+    "requiredMentions": [
+      "validation boundary",
+      "controller vs service responsibilities"
+    ],
+    "maxWords": 180,
+    "gradingStyle": "completion_and_relevance"
+  },
+  "personalizationInputs": [
+    "userMistakesFromCheckReports",
+    "hintUsage",
+    "sidequestsCompleted"
+  ]
+}

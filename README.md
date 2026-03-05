@@ -9,21 +9,19 @@ AI-guided IDE learning system. Full design doc: [`docs/design.md`](docs/design.m
 Each day follows this structure:
 
 1. **Concepts first** — engineering principles, production context, design reasoning behind every decision
-2. **Build one step at a time** — one chunk of code at a time, fully explained before typing. Never all steps at once.
+2. **Build one step at a time** — one chunk of code at a time, never all steps at once. provide detailed explanation for every single code block
 3. **Reflection** — what felt hard, what to revisit
 
 **At the end of every day:** `notes/dayX/job.md` is created covering what we built, key concepts, design decisions, commands, and bugs learned.
 
-**Target: ~2 hours of hands-on work per day.**
+**Target: ~4 hours of hands-on work per day.**
 
 ---
 
 ## Ground Rules
 
-- Manually type all code — no copy-paste
-- Ask "why" whenever anything is unclear
+- User will manually type all code — don't generate code
 - Every design decision gets explained, not just the implementation
-- Simple, correct, and testable over clever
 - Incremental builds — no over-engineering upfront
 
 ---
@@ -32,51 +30,54 @@ Each day follows this structure:
 
 - **Engine:** Node.js + TypeScript + Express
 - **Dashboard:** React + Vite + Tailwind
-- **DB:** Postgres + Prisma
+- **DB:** Postgres + Prisma (user state/progress — Days 19+)
 - **LLM:** Google Gemini API (key in `apps/engine/.env`, never committed)
 - **Extension:** VS Code API (Cursor compatible)
 - **Infra:** Docker Compose, Render/Fly.io
 
----
+## Storage Architecture
+
+- **MVP:** all course content and state live in local files (`.learnmode/`, `packages/course-templates/`)
+- **Production:** course specs + content → object storage (S3/GCS); user state + progress → Postgres; both swappable by changing the loader/state service only
 
 ## 30-Day Roadmap
 
-### Week 1 — Foundation + Engine Skeleton
-- Day 1: Monorepo setup, TypeScript config ✓ (carries over)
-- Day 2: TypeScript fundamentals ✓ (carries over)
-- Day 3: Engine skeleton — Node/Express, course graph types, basic routes
-- Day 4: Course template format — YAML/JSON schema, file parsing, content model
-- Day 5: REST API — Zod validation, error handling, serve tree + content endpoints
-- Day 6: File-based state persistence — `.learnmode/state.json`, state machine
-- Day 7: Dashboard shell — React + routing + skill tree placeholder UI
+### Week 1 — Foundation + Engine Core
+- Day 1: Monorepo setup, TypeScript config, npm workspaces ✓
+- Day 2: TypeScript fundamentals — interfaces, generics, async/await ✓
+- Day 3: Engine skeleton — Express app factory, middleware pipeline (requestId, errorHandler), course graph types, health + tree routes ✓
+- Day 4: Submodule filesystem spec — `packages/core` shared types, spec file schemas (meta.json / lecture / coding / reflection), `contentLoader` service, `GET /api/submodule/:id/meta`
+- Day 5: Zod validation — validate API inputs, `AppError` class, proper 400/404/500 responses, update all endpoints to use Zod
+- Day 6: File-based state — `.learnmode/state.json` schema, state machine (locked → available → in_progress → completed), `stateService` read/write
+- Day 7: Dashboard shell — React + Vite setup, routing (`/`, `/tree`, `/submodule/:id`), Tailwind, layout + navbar
 
-### Week 2 — Core Learning Features
-- Day 8: Lecture content serving + markdown rendering
-- Day 9: Quiz system — grading, gating, state updates
-- Day 10: TODO region system — markers, detection, completion checking
-- Day 11: Test runner integration — run tests, parse output, structured report
-- Day 12: Hints ladder — 4 levels, policy, LLM-powered (Gemini)
-- Day 13: Dashboard skill tree UI — node states, dependency visualization
-- Day 14: Dashboard submodule page — Learn / Quiz / Build tabs
+### Week 2 — Core Learning Pipeline
+- Day 8: Skill tree UI — node status colors, dependency edges, Duolingo-style layout, live data from `GET /api/tree`
+- Day 9: Lecture serving — `GET /api/submodule/:id/lecture`, lecture spec → blocks, markdown rendering in dashboard
+- Day 10: TODO region system — `// === LEARNMODE: TODO id=... ===` markers, file scanner, completion detector
+- Day 11: Test runner — `child_process` exec, vitest output parser, structured `CheckReport`
+- Day 12: Check endpoint — wire TODO checker + test runner into `POST /api/submodule/:id/check`, check results in dashboard
+- Day 13: Hints system — `coding/todo.json` hint levels, level-gate policy (require failed check for L3+), `POST /api/submodule/:id/hint` (static stubs)
+- Day 14: Dashboard Coding tab — Run Prep, TODO list, Run Check, results pane, hints drawer
 
-### Week 3 — Advanced Features + Production Quality
-- Day 15: Side quest system + benchmark harness
-- Day 16: LLM integration — planner + hint generation with guardrails
-- Day 17: VS Code extension shell — sidebar, webview, command palette
-- Day 18: Extension inline features — diagnostics, CodeLens above TODO regions
-- Day 19: Docker + Docker Compose for engine + dashboard + Postgres
-- Day 20: Engine observability — request IDs, structured logs, health endpoint
-- Day 21: CI pipeline — lint, typecheck, test on push
+### Week 3 — LLM Integration + Agent Workflows
+- Day 15: Gemini API — `@google/generative-ai` client, structured JSON output mode, prompt scaffolding, test a basic call
+- Day 16: Course planner agent — `POST /api/course/init`: user request → LLM generates full submodule spec files → write to disk → freeze with hash
+- Day 17: Boilerplate prep agent — read `coding/prep.json` → LLM generates unified diff patch → apply patch safely (reject writes inside TODO regions)
+- Day 18: LLM hint generation — level-constrained prompts, anti-leak rules, dynamic hints using todo.json + user code + failing test output
+- Day 19: Sidequest system — `triggerHooks` (test fingerprint + AST pattern detection), `POST /api/submodule/:id/sidequest/trigger`, mini-submodule flow
+- Day 20: Reflection system — `reflection/spec.json` reading, `POST /api/submodule/:id/reflection/submit`, LLM-graded personalized feedback
+- Day 21: Freeze policy + memory system — hash artifacts on first generation, `memory/user_profile.md` + `decisions.md` update pipeline
 
-### Week 4 — Course Content + Ship
-- Day 22: Todo Pro — Module 1 (Setup) + Module 2 (Backend Basics) content
-- Day 23: Todo Pro — Module 3 (Database) + Module 4 (Frontend) content
-- Day 24: Todo Pro — Module 5 (Security) + Module 6 (Deployment) content
-- Day 25: Performance optimization + caching in engine
-- Day 26: Security hardening
-- Day 27: Deployment — Render/Fly.io + production config
-- Day 28: VS Code extension polish + packaging
-- Day 29: Final polish + end-to-end demo
+### Week 4 — Deployment + Polish + Ship
+- Day 22: Docker Compose — Dockerfile for engine, Dockerfile for dashboard, `docker-compose.yml` with Postgres
+- Day 23: Observability — structured JSON logging (pino), `.learnmode/telemetry.jsonl`, request tracing per submodule event
+- Day 24: VS Code extension shell — tree panel sidebar, CodeLens above TODO blocks, `learnmode check` command palette
+- Day 25: CLI — `learnmode init`, `learnmode check`, `learnmode hint`, `learnmode doctor`
+- Day 26: End-to-end integration — full flow: init → lecture → coding → check → hint → reflection, one complete submodule
+- Day 27: Sidequest polish + benchmark harness — seed DB, run 50x, measure latency/query count, Compare UI
+- Day 28: Security hardening — rate limiting, input sanitization, patch boundary enforcement audit
+- Day 29: Final polish — error messages, loading states, responsive layout, README for public
 - Day 30: Capstone retrospective + next 60-day plan
 
 ---

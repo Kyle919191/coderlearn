@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "todoRegions": [
+    {
+      "todoId": "service_createTodo",
+      "filePath": "backend/src/services/todos.ts",
+      "regionType": "LEARNMODE_BLOCK",
+      "purpose": "Create a todo owned by the authenticated user",
+      "signature": "createTodo(userId: string, input: CreateTodoInput): Promise<TodoDTO>",
+      "requirements": [
+        "validate title non-empty",
+        "trim title",
+        "persist ownerId=userId",
+        "return DTO { id, title, completed, createdAt }"
+      ],
+      "constraints": [
+        "must not access Express req/res",
+        "must throw AppError('VALIDATION_ERROR', ...) on invalid input"
+      ],
+      "edgeCases": ["empty title", "title > 200 chars", "userId empty"],
+      "hinting": {
+        "hintLevels": {
+          "L1": { "style": "concept_reminder", "maxTokens": 120 },
+          "L2": { "style": "pseudocode", "maxTokens": 180 },
+          "L3": { "style": "skeleton_with_blanks", "maxTokens": 220 },
+          "L4": { "style": "one_function_outline", "maxTokens": 260 }
+        },
+        "hintInputs": ["todoSpec", "userTodoCode", "failingTestsSummary", "surroundingSignatures"],
+        "antiLeakRules": ["do_not_output_complete_function_body", "do_not_output_full_solution"]
+      },
+      "triggerHooks": [
+        {
+          "hookId": "controller-db-logic",
+          "when": "on_check",
+          "detect": {
+            "type": "ast",
+            "scopeFile": "backend/src/routes/todos.ts",
+            "patternId": "db_call_inside_route_handler",
+            "confidenceThreshold": 0.7
+          },
+          "offerSideQuestId": "service-layer-pattern",
+          "message": "You're doing DB work in the controller. Want a side quest on the Service Layer pattern?"
+        },
+        {
+          "hookId": "missing-validation",
+          "when": "on_failed_test",
+          "detect": {
+            "type": "test_fingerprint",
+            "fingerprints": ["VALIDATION_EMPTY_TITLE_FAILS", "LONG_TITLE_ACCEPTED"]
+          },
+          "offerSideQuestId": "input-validation",
+          "message": "Looks like validation is missing. Want a mini quest on validation boundaries?"
+        }
+      ],
+      "tags": ["service-layer", "validation", "db", "dto"]
+    }
+  ]
+}

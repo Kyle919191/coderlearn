@@ -1,0 +1,22 @@
+{
+  "submoduleId": "2.2-crud-create-list",
+  "title": "CRUD: Create + List",
+  "moduleId": "2-backend-basics",
+  "summary": "Implement create/list todo service functions with validation and API wiring.",
+  "dependsOn": ["2.1-routes-and-controllers"],
+  "stageOrder": ["lecture", "coding", "reflection"],
+  "recommendedSidequests": ["service-layer-pattern", "input-validation"],
+  "conceptTags": ["validation", "dto", "service-layer", "db"],
+  "difficulty": 2,
+  "estimatedMinutes": 35,
+  "entryPoints": {
+    "lecture": "lecture/spec.md",
+    "coding": "coding/prep.json",
+    "reflection": "reflection/spec.json",
+    "sidequestsIndex": "sidequests/index.json"
+  },
+  "freezePolicy": {
+    "freezeOnFirstRun": true,
+    "regenerationAllowed": false
+  }
+}

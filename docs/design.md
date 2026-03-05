@@ -1,311 +1,605 @@
-# LearnMode — Full Design Document
+# LearnMode MVP Design Doc + Build Checklist
 
 ---
 
-## 0. Summary
+## 0. What We're Building (Purpose)
 
-Build a "Learning Mode" system that takes a user's project request (e.g., "todo web app"), generates a module/submodule skill tree, and guides the user through:
+LearnMode is a learning-first coding experience built on top of existing IDE workflows. It guides programming learners through building real production-style software (full stack: frontend + backend + DB + deployment + observability), while ensuring they don't "skip the learning" via AI-generated full solutions.
 
-- Mini-lectures + quizzes
-- Implementation gates where AI can only generate boilerplate, while the user must write core logic
-- Hints ladder (small → big)
-- Side quests that compare approaches (tradeoffs, design styles, performance, observability)
-
-The product works:
-- Inside IDEs (VS Code first; compatible with Cursor/Claude Code via VS Code extension + CLI)
-- With a web dashboard (nice UI, IDE-agnostic)
-
-MVP focuses on one project journey (template): Node/Express API + Postgres + React deployed with a standard production baseline.
+**Core idea:**
+- AI can generate boilerplate (imports, wiring, config, skeleton files)
+- The learner must implement core logic inside TODO regions
+- The system enforces progress using deterministic verification (tests, TODO completion, optional typecheck/lint)
+- Learners receive dynamic hints based on their current wrong code + failing tests
+- Side quests are triggered during coding when certain tradeoffs or patterns appear
+- Every submodule ends with a guided reflection
 
 ---
 
-## 1. LLM Role (Gemini)
+## 1. Target Users / Clients
 
-Gemini is the backbone of the entire product. It is responsible for:
+**Primary users:**
+- Programming learners who want to genuinely learn but rely too much on AI IDEs
+- CS students / bootcamp students needing structured progression + proof of learning
+- Teachers/TAs who want "AI allowed but learning outcomes enforced"
+- Teams onboarding interns/juniors (optional later): guided skill-building inside real repos
 
-| Feature | LLM Task |
-|---|---|
-| Planner | Convert user project request → module/submodule skill tree |
-| Lecture generation | Write mini-lecture content for each submodule |
-| Boilerplate generation | Generate scaffold code with TODO regions (allowed zones only) |
-| Hint generation | Produce level-constrained hints (never full solution) |
-| User code verification | Review user's TODO region code against spec + failing tests |
-| Side quest explanations | Explain the tradeoff, guide the comparison |
-| Side quest coding | Assist with implementing the alternative approach |
-| Quiz generation | (Optional MVP+) Generate MCQ questions from lecture content |
-
-**Guardrails (important):**
-- Hints prompt is strictly constrained by level: L1 = concept reminder only, L4 = one function outline maximum
-- Boilerplate generation prompt forbids generating inside TODO regions
-- Verification prompt produces structured feedback only — no full solution reveal
-- All prompts include a system instruction: "Do not output complete solutions to TODO regions"
-
-**LLM tech:**
-- Provider: Google Gemini API
-- Key stored in: `apps/engine/.env` as `GEMINI_API_KEY`
-- Never committed to Git
+This is **not** "a better AI IDE." It is a learning layer that coexists with IDEs and AI coding assistants.
 
 ---
 
-## 2. Goals and Non-Goals
+## 2. Product UX Overview
 
-**Goals (MVP):**
-- Convert user request → progressable skill tree (modules/submodules)
-- For each submodule: lecture → quiz → gated implementation
-- AI boilerplate allowed, core logic required from user
-- Check mechanism: tests passing + required TODO regions filled
-- Hints ladder that never reveals the whole solution
-- At least one side quest with measurable tradeoff (e.g., ORM vs raw SQL)
-- Web dashboard UI
-- IDE integration via CLI engine and VS Code extension
-
-**Non-goals (MVP):**
-- Building a full IDE
-- Perfect "cheat detection"
-- Supporting many templates at once
-- Running untrusted code in the cloud (local execution only)
+1. User enters a project request: *"Build a production-ready todo app with auth, db, deployment."*
+2. **Course-level AI generates a course plan:**
+   - module tree + submodules
+   - for each submodule: lecture / coding / sidequest / reflection instruction files
+   - does NOT generate full real code now — it generates instruction specs
+3. User sees a Duolingo-like skill tree (web UI, later in IDE extension too)
+4. For each submodule, the learner progresses through stages: **Lecture → Coding → Side Quest (optional) → Reflection**
+5. **"Advance" is only possible when:**
+   - quiz passed (if enabled)
+   - TODO regions implemented
+   - tests pass
 
 ---
 
-## 3. User Experience Flow
-
-### Main Journey
-
-1. **User request** — "Build a production-ready todo app with auth, db, deployment."
-2. **Planner generates a tree** — Modules (Backend, Frontend, Database, Deployment, Security, Observability), each with submodules
-3. **Progress UI** — Node states: Locked (gray) / Available (blue) / In-progress (yellow) / Completed (green). Dependencies enforce order.
-4. **For each submodule:**
-   - Mini-lecture (2–6 min, AI-generated)
-   - Quiz (5–8 items, must pass ≥ 80%)
-   - Implementation gate: AI generates boilerplate, user writes core logic in TODO regions
-   - Check results: red highlights for failing tests/regions + file/line links
-   - Hints: L1 concept reminder → L2 pseudocode → L3 skeleton with blanks → L4 one function outline
-5. **Side quests** — one for each submodule: implement alternative approach/compare tradeoffs/explore relevant system design principles/visualize efficiency with scripts
-
----
-
-## 4. Product Shape: Engine + Shells
+## 3. Architecture (Engine + CLI + Web + IDE Shell)
 
 ### Components
 
-**A) Core Engine (Node.js)**
-- Owns: course graph, state, validation, tests, hint policy, LLM calls
-- Exposes a local HTTP API consumed by all UI shells
+**A) Local Engine (Node.js, TypeScript) — the brain**
+- Owns course state, unlock rules, TODO parsing, test running, hint calls, sidequest triggers
+- Exposes localhost HTTP API for all clients
+- Stores state in `.learnmode/state.json` (MVP)
+- Applies patches safely (never edits TODO regions)
 
-**B) Web Dashboard (React)**
-- Renders skill tree + lesson + quiz + check output + hints + side quests
-- Talks to engine via HTTP on localhost
+**B) CLI (`learnmode`) — universal adapter**
+- `init` repo/template, start engine, open dashboard
+- `check` / `hint` / `bench` from terminal (works with any IDE)
+- Manages daemon lifecycle
 
-**C) IDE Shell (VS Code Extension)**
-- Shows skill tree panel + lesson webview
-- Adds inline diagnostics (red squiggles, code lenses)
-- Calls the same engine API on localhost
-- Works in Cursor (VS Code-based)
+**C) Web Dashboard (React) — Duolingo UI**
+- Skill tree with locked/unlocked/green nodes
+- Lecture view, quiz, build tab, check results, hints drawer
+- Compare tab for sidequests (metrics)
 
-**D) CLI**
-- `learnmode init`, `learnmode check`, `learnmode hint`
-- Calls engine, or engine spawns as daemon automatically
+**D) VS Code Extension (optional after MVP)**
+- Tree panel + diagnostics + CodeLens on TODO blocks
+- Uses same engine API
+- Cursor compatibility because Cursor is VS Code-based
 
-### Why this architecture
-- Logic lives in one place (the engine)
-- Ship web UI fast, build IDE delight later
-- Compatible with any editor via CLI + dashboard
-
----
-
-## 5. MVP Scope: "Todo Pro" Template
-
-### Stack
-- Frontend: React + Vite
-- Backend: Node + Express
-- DB: Postgres + Prisma
-- Auth: JWT
-- Deployment: Docker Compose (local), optional Render/Fly.io guide
-- Observability: structured logging + request IDs + basic metrics endpoint
-
-### Example Module Tree
-
-**Module 1: Setup**
-- 1.1 Repo scaffold (monorepo folders)
-- 1.2 Run dev servers
-- 1.3 Environment variables
-
-**Module 2: Backend Basics**
-- 2.1 Express routes + controllers
-- 2.2 Validation (Zod) + error handling
-- 2.3 Service layer pattern
-- 2.4 Tests for API endpoints (Vitest + supertest)
-
-**Module 3: Database**
-- 3.1 Schema design + migrations (Prisma)
-- 3.2 CRUD persistence functions
-- 3.3 Side quest: ORM vs raw SQL (measure query count/latency)
-
-**Module 4: Frontend**
-- 4.1 API client + typed DTOs
-- 4.2 State management (hooks)
-- 4.3 UI forms + validation
-- 4.4 Frontend tests (minimal)
-
-**Module 5: Security Baseline**
-- 5.1 JWT auth + password hashing
-- 5.2 Authorization checks (owner-only)
-- 5.3 Side quest: session-based auth tradeoff (conceptual + optional)
-
-**Module 6: Deployment & Ops**
-- 6.1 Dockerize backend/frontend
-- 6.2 Docker Compose with Postgres
-- 6.3 Observability: logging + request IDs + healthcheck
+### Why this design
+- You don't build an IDE — users keep Cursor/Claude Code/VS Code/JetBrains
+- Your system enforces learning using tests + TODO gating
+- Logic lives in one place (the engine); ship web UI fast, build IDE delight later
 
 ---
 
-## 6. Learning Content Model
+## 4. Tech Stack (MVP)
 
-Each submodule includes:
-```
-submodules/<id>/
-  lecture.md        AI-generated mini-lecture
-  quiz.json         MCQ questions + answers
-  tasks.json        Gated implementation specs
-  checks.json       Tests + constraints
-  hints.json        Hint ladder content
-  sidequests/       Optional alternative approach
-```
+### Template project ("Todo Pro")
+- **Frontend:** React + Vite + TypeScript
+- **Backend:** Node + Express + TypeScript
+- **DB:** Postgres
+- **ORM:** Prisma (side quest: raw SQL alternative)
+- **Auth:** JWT (basic)
+- **Deployment:** Docker Compose (local "production-ish")
+- **Observability:** structured logging + request IDs + health endpoint
 
----
-
-## 7. Gated Implementation System (Core Differentiator)
-
-### TODO Regions
-
-```typescript
-// === LEARNMODE: TODO id=service_createTodo ===
-// Implement createTodo(userId, input):
-// - validate input
-// - persist todo
-// - return created todo DTO
-// === END ===
-```
-
-### What AI is allowed to generate
-- **Allowed:** imports, boilerplate file setup, route wiring, DTO interfaces
-- **Disallowed:** code inside TODO regions
-
-### Validation (`learnmode check <submodule>`)
-Runs:
-1. Region completion check (TODO blocks replaced with code)
-2. Linter/typecheck
-3. Unit tests
-4. Hidden tests (stored in `.learnmode/tests_hidden/`)
-
-Returns structured report: failing tests, failing regions, stack traces, file/line mapping
+### LearnMode system itself
+- **Engine:** Node.js + TypeScript + Express
+- **Web:** React + Vite + TypeScript
+- **Storage:** file-based `.learnmode/` (MVP); SQLite later if needed
+- **LLM:** Google Gemini API (key in `apps/engine/.env` as `GEMINI_API_KEY`, never committed)
 
 ---
 
-## 8. Hints Ladder
+## 5. AI Usage (Two-Level Ideology)
 
-| Level | Content |
+### 5.1 Course-level AI (Planner) — generates course specs, not code
+
+Runs once per course start and outputs:
+- modules/submodules + dependencies
+- for each submodule: lecture / coding / sidequest / reflection folders and instruction files
+- coding stage includes: boilerplate plan (actions), TODO region specs, verify spec (how to generate tests)
+
+This output is **frozen** (hash) so the course doesn't mutate mid-run.
+
+### 5.2 Submodule-level AI (Single agent per submodule)
+
+For each submodule, one agent handles all stages guided by the spec files:
+
+| Stage | What the agent does |
 |---|---|
-| L1 | Concept reminder ("What layer should own this responsibility?") |
-| L2 | Pseudocode steps |
-| L3 | Skeleton with blanks |
-| L4 | One function outline — key lines still missing |
+| Lecture | Generate content/blocks based on `lecture/spec.md` + `lecture/spec.json` |
+| Coding Prep | Read `coding/prep.json`, output a unified diff patch to apply boilerplate |
+| Tests | Generate tests per `coding/verify.json` (public + hidden), freeze on first generation |
+| Hints | Dynamic generation based on `coding/todo.json` + user's TODO code + failing tests |
+| Sidequest | Triggered by `triggerHooks` in `coding/todo.json`, uses `sidequests/` mini-submodule specs |
+| Reflection | Generate prompt guidance using `reflection/spec.json` |
 
-**Policy:** Require at least one failed check before allowing L3/L4.
-
----
-
-## 9. Side Quests System
-
-### Types
-- Alternative implementation (ORM vs raw SQL)
-- Design style refactor (controller logic → service layer)
-- Performance measurement (cache vs no cache)
-- Observability (add request ID, structured logs)
-- System design mini (pagination, rate limiting, background job concept)
-
-### Benchmark harness (MVP)
-- Seed DB with N records
-- Run endpoint 50 times (10 warmup)
-- Report: median latency, p95 latency, query count per request, response payload bytes
-- Dashboard shows "Approach A vs B" table/chart
+### Guardrails
+- AI never outputs complete solutions for TODO blocks
+- AI can only propose patches outside TODO regions
+- Engine rejects any patch that violates allowed zones
+- Tests are generated once per submodule and then frozen
 
 ---
 
-## 10. Engine Design
+## 6. Determinism & Freeze Points (Critical)
 
-### Responsibilities
-- Parse course template / generate plan from LLM
-- Maintain progress state
-- Serve content (lecture/quiz)
-- Run checks/tests + parse results
-- Provide hint text (LLM-powered)
-- Provide benchmarking results
+To prevent "moving goalposts":
+- Freeze `course_spec` after course-level AI generates it
+- For each submodule:
+  - freeze boilerplate patch after first generation
+  - freeze public/hidden tests after first generation
+  - sidequests: freeze quest specs once triggered
 
-### Tech
-- Node.js + TypeScript
-- Express API server
-- File-based persistence in `.learnmode/state.json` (MVP)
-- LLM: Gemini API
+---
 
-### API
+## 7. Submodule Filesystem Spec (Canonical)
+
+The course-level AI must output the following structure per submodule:
+
+```
+submodules/<submoduleId>/
+  meta.json
+
+  lecture/
+    spec.md
+    spec.json
+
+  coding/
+    prep.json
+    todo.json
+    verify.json
+
+  sidequests/
+    index.json
+    quests/
+      <questId>/
+        meta.json
+        lecture/
+          spec.md
+          spec.json
+        coding/
+          prep.json
+          todo.json
+          verify.json
+        reflection/
+          spec.json
+
+  reflection/
+    spec.json
+```
+
+The engine reads these files, runs the corresponding stage workflows, applies patches, runs checks, and stores progress state.
+
+---
+
+## 8. Exact File Contents (Examples)
+
+### 8.1 `submodules/<id>/meta.json`
+```json
+{
+  "submoduleId": "2.2-crud-create-list",
+  "title": "CRUD: Create + List",
+  "moduleId": "2-backend-basics",
+  "summary": "Implement create/list todo service functions with validation and API wiring.",
+  "dependsOn": ["2.1-routes-and-controllers"],
+  "stageOrder": ["lecture", "coding", "reflection"],
+  "recommendedSidequests": ["service-layer-pattern", "input-validation"],
+  "conceptTags": ["validation", "dto", "service-layer", "db"],
+  "difficulty": 2,
+  "estimatedMinutes": 35,
+  "entryPoints": {
+    "lecture": "lecture/spec.md",
+    "coding": "coding/prep.json",
+    "reflection": "reflection/spec.json",
+    "sidequestsIndex": "sidequests/index.json"
+  },
+  "freezePolicy": {
+    "freezeOnFirstRun": true,
+    "regenerationAllowed": false
+  }
+}
+```
+
+### 8.2 `lecture/spec.md`
+```markdown
+# Lecture Spec — 2.2 CRUD: Create + List
+
+## Learning objectives
+- Explain why we validate at the boundary of the system.
+- Implement Create + List in a service layer (not in the controller).
+- Describe DTO vs DB model and why separation helps.
+
+## Concepts to teach
+- Validation boundaries: never trust input
+- DTO vs persistence model
+- Service layer responsibilities
+- Error handling contract (AppError)
+
+## Example (must be DIFFERENT from assignment)
+Use a different domain object than "todo" (e.g., "notes").
+
+## Common pitfalls
+- DB calls inside controllers
+- Returning raw DB rows directly
+- Not scoping list results to userId
+
+## Check-for-understanding questions
+1. Where should validation happen and why?
+2. Why avoid DB logic inside controllers?
+3. Difference between DTO and DB model?
+```
+
+### 8.3 `lecture/spec.json`
+```json
+{
+  "version": 1,
+  "objectives": [
+    "Explain why we validate at the boundary of the system",
+    "Implement Create + List in a service layer",
+    "Distinguish DTO from DB model"
+  ],
+  "blocks": [
+    {
+      "type": "concept",
+      "id": "validation-boundaries",
+      "title": "Validate at the boundary",
+      "bullets": [
+        "Never trust req.body or external inputs",
+        "Reject invalid input early to simplify downstream logic"
+      ]
+    },
+    {
+      "type": "concept",
+      "id": "dto-vs-model",
+      "title": "DTO vs DB model",
+      "bullets": [
+        "DTO is your API contract",
+        "DB model is internal persistence representation"
+      ]
+    },
+    {
+      "type": "example",
+      "id": "example-notes",
+      "title": "Example: Notes service",
+      "constraints": {
+        "mustUseDifferentDomainObject": "notes",
+        "mustNotMirrorTodoExactFunctions": true
+      }
+    },
+    {
+      "type": "common_mistakes",
+      "id": "pitfalls",
+      "items": [
+        "DB calls inside controllers",
+        "Returning raw DB row with sensitive fields",
+        "Not scoping list results by userId"
+      ]
+    },
+    {
+      "type": "check_understanding",
+      "id": "cu",
+      "questions": [
+        { "type": "short", "prompt": "Where should validation happen and why?" },
+        { "type": "short", "prompt": "Why avoid DB logic inside controllers?" }
+      ]
+    }
+  ],
+  "quizSpec": {
+    "enabled": true,
+    "count": 6,
+    "types": ["mcq", "tradeoff"],
+    "passThreshold": 0.8
+  }
+}
+```
+
+### 8.4 `coding/prep.json` (boilerplate plan)
+```json
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "boilerplatePlan": {
+    "allowedFiles": [
+      "backend/src/app.ts",
+      "backend/src/routes/todos.ts",
+      "backend/src/services/todos.ts",
+      "backend/src/schemas/todos.ts"
+    ],
+    "forbiddenEdits": [
+      { "rule": "do_not_edit_todo_regions" },
+      { "rule": "do_not_overwrite_user_files_without_patch" }
+    ],
+    "actions": [
+      { "type": "ensure_dependency", "pkgManager": "pnpm", "name": "zod", "where": "backend" },
+      { "type": "create_file", "path": "backend/src/routes/todos.ts", "templateId": "express_router_base" },
+      { "type": "create_file", "path": "backend/src/services/todos.ts", "templateId": "service_base" },
+      { "type": "create_file", "path": "backend/src/schemas/todos.ts", "templateId": "zod_schema_base" },
+      {
+        "type": "insert_snippet",
+        "path": "backend/src/app.ts",
+        "anchor": "// ROUTES",
+        "snippetId": "wire_todos_router",
+        "strategy": "insert_after_anchor"
+      }
+    ],
+    "patchOutput": {
+      "format": "unified_diff",
+      "mustBeIdempotent": true,
+      "maxChangedLines": 300
+    }
+  },
+  "testPreparation": {
+    "generateTestsNow": true,
+    "whereToWrite": {
+      "public": "backend/src/services/todos.test.ts",
+      "hidden": ".learnmode/tests_hidden/2.2/todos.hidden.test.ts"
+    }
+  }
+}
+```
+
+### 8.5 `coding/todo.json` (TODO regions + hints + sidequest triggers)
+```json
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "todoRegions": [
+    {
+      "todoId": "service_createTodo",
+      "filePath": "backend/src/services/todos.ts",
+      "regionType": "LEARNMODE_BLOCK",
+      "purpose": "Create a todo owned by the authenticated user",
+      "signature": "createTodo(userId: string, input: CreateTodoInput): Promise<TodoDTO>",
+      "requirements": [
+        "validate title non-empty",
+        "trim title",
+        "persist ownerId=userId",
+        "return DTO { id, title, completed, createdAt }"
+      ],
+      "constraints": [
+        "must not access Express req/res",
+        "must throw AppError('VALIDATION_ERROR', ...) on invalid input"
+      ],
+      "edgeCases": ["empty title", "title > 200 chars", "userId empty"],
+      "hinting": {
+        "hintLevels": {
+          "L1": { "style": "concept_reminder", "maxTokens": 120 },
+          "L2": { "style": "pseudocode", "maxTokens": 180 },
+          "L3": { "style": "skeleton_with_blanks", "maxTokens": 220 },
+          "L4": { "style": "one_function_outline", "maxTokens": 260 }
+        },
+        "hintInputs": ["todoSpec", "userTodoCode", "failingTestsSummary", "surroundingSignatures"],
+        "antiLeakRules": ["do_not_output_complete_function_body", "do_not_output_full_solution"]
+      },
+      "triggerHooks": [
+        {
+          "hookId": "controller-db-logic",
+          "when": "on_check",
+          "detect": {
+            "type": "ast",
+            "scopeFile": "backend/src/routes/todos.ts",
+            "patternId": "db_call_inside_route_handler",
+            "confidenceThreshold": 0.7
+          },
+          "offerSideQuestId": "service-layer-pattern",
+          "message": "You're doing DB work in the controller. Want a side quest on the Service Layer pattern?"
+        },
+        {
+          "hookId": "missing-validation",
+          "when": "on_failed_test",
+          "detect": {
+            "type": "test_fingerprint",
+            "fingerprints": ["VALIDATION_EMPTY_TITLE_FAILS", "LONG_TITLE_ACCEPTED"]
+          },
+          "offerSideQuestId": "input-validation",
+          "message": "Looks like validation is missing. Want a mini quest on validation boundaries?"
+        }
+      ],
+      "tags": ["service-layer", "validation", "db", "dto"]
+    }
+  ]
+}
+```
+
+### 8.6 `coding/verify.json` (tests + commands + freeze)
+```json
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "checkCommands": [
+    {
+      "id": "backend-tests",
+      "label": "Run backend test suite",
+      "cmd": "pnpm -C backend test",
+      "mustPass": true,
+      "timeoutSeconds": 20
+    },
+    {
+      "id": "backend-typecheck",
+      "label": "Typecheck backend",
+      "cmd": "pnpm -C backend typecheck",
+      "mustPass": false,
+      "timeoutSeconds": 20
+    }
+  ],
+  "todoCompletionRules": [
+    { "rule": "all_todo_regions_must_be_replaced", "todoIds": ["service_createTodo"] }
+  ],
+  "testGenerationSpec": {
+    "framework": "vitest",
+    "language": "ts",
+    "publicTests": {
+      "filePath": "backend/src/services/todos.test.ts",
+      "mustCover": [
+        "createTodo returns id and DTO shape",
+        "createTodo rejects empty title"
+      ]
+    },
+    "hiddenTests": {
+      "filePath": ".learnmode/tests_hidden/2.2/todos.hidden.test.ts",
+      "mustCover": ["reject long title", "does not leak across users"]
+    },
+    "safetyRules": {
+      "noNetwork": true,
+      "randomMustBeSeeded": true,
+      "maxRuntimeSeconds": 10
+    },
+    "freezePolicy": {
+      "freezeAfterFirstGeneration": true,
+      "regenerationAllowed": false
+    }
+  },
+  "resultParsing": { "testFramework": "vitest", "extractFailureFileAndLine": true }
+}
+```
+
+### 8.7 `sidequests/index.json`
+```json
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "quests": [
+    {
+      "questId": "service-layer-pattern",
+      "title": "Service Layer Pattern",
+      "description": "Move business logic out of controllers into services for maintainability.",
+      "entry": "quests/service-layer-pattern/meta.json",
+      "recommendedWhen": ["controller-db-logic"]
+    },
+    {
+      "questId": "input-validation",
+      "title": "Validation Boundaries",
+      "description": "Learn where to validate, how to structure errors, and why it matters.",
+      "entry": "quests/input-validation/meta.json"
+    }
+  ]
+}
+```
+
+Each quest is a mini-submodule with the same `lecture/coding/verify/reflection` structure.
+
+### 8.8 `reflection/spec.json`
+```json
+{
+  "version": 1,
+  "submoduleId": "2.2-crud-create-list",
+  "prompts": [
+    "Where did you put validation and why?",
+    "What tradeoff does a service layer introduce?",
+    "What bug would you expect if you forgot to scope by userId?"
+  ],
+  "rubric": {
+    "requiredMentions": ["validation boundary", "controller vs service responsibilities"],
+    "maxWords": 180,
+    "gradingStyle": "completion_and_relevance"
+  },
+  "personalizationInputs": [
+    "userMistakesFromCheckReports",
+    "hintUsage",
+    "sidequestsCompleted"
+  ]
+}
+```
+
+---
+
+## 9. Engine API (MVP Endpoints)
 
 | Method | Route | Description |
 |---|---|---|
-| POST | `/api/project/init` | Generate skill tree from user request |
-| GET | `/api/tree` | Return modules + statuses + dependencies |
-| GET | `/api/submodule/:id/content` | Lecture blocks + quiz |
-| POST | `/api/submodule/:id/quiz/submit` | Grade quiz + update eligibility |
-| POST | `/api/submodule/:id/check` | Run tests + TODO checks → structured report |
-| POST | `/api/submodule/:id/hint` | Return hint at requested level |
-| POST | `/api/submodule/:id/sidequest/run` | Run benchmark + return comparison |
+| POST | `/api/course/init` | User request + template → create `.learnmode/` course spec + submodule folders/files |
+| GET | `/api/tree` | Modules/submodules + status colors (locked/available/etc.) |
+| GET | `/api/submodule/:id/lecture` | Read lecture files + return blocks to UI |
+| POST | `/api/submodule/:id/coding/prep` | Run submodule agent in "prep mode": output patch, apply patch, generate tests, freeze |
+| POST | `/api/submodule/:id/check` | Run TODO completion checks + test commands + parse failures |
+| POST | `/api/submodule/:id/hint` | Input: todoId + hint level → dynamic hint |
+| POST | `/api/submodule/:id/sidequest/trigger` | Run detectors, return optional quest offer |
+| POST | `/api/sidequest/:questId/start` | Load quest specs, begin quest |
+| POST | `/api/submodule/:id/reflection/submit` | Store reflection, return feedback |
 
-### State Machine
+---
+
+## 10. State Storage (MVP)
+
+In project root:
+
 ```
-locked → available → in_progress → completed
+.learnmode/
+  state.json                          submodule status, quiz status, patch/test freeze flags, hint usage, reflections
+  generated/<submoduleId>/
+    boilerplate.patch                 frozen unified diff
+  tests_hidden/
+    <submoduleId>/
+      *.hidden.test.ts                hidden tests (frozen after first generation)
+  memory/
+    user_profile.md                   LLM-maintained summary of user patterns and preferences
+    decisions.md                      key architecture decisions made during the course
+  chat/
+    <submoduleId>.json                conversation history per submodule (last N turns)
 ```
-Completed only when: quiz passed (≥80%) + TODO regions filled + all tests pass
+
+The `memory/` folder provides persistent LLM context across submodules (see Section 11). It is deleted when the course is complete; the course tree remains in the database.
 
 ---
 
-## 11. Dashboard UI (React)
+## 11. LLM Context Strategy (Filesystem Memory)
 
-### Screens
-1. **Project start** — user request input, choose template, generate plan
-2. **Skill tree** — collapsible modules, node color states, Start/Resume per submodule
-3. **Submodule page** — tabs: Learn / Quiz / Build / Compare
-4. **Build tab** — TODO tasks list, Run Check button, results pane (failing tests, file/line links)
-5. **Hints drawer** — level buttons, "show next hint" gating
-6. **Compare tab** — run benchmark, show results + explanation
+The LLM does not have persistent memory between calls. Instead, the engine assembles relevant context per call from structured files:
 
-### UX priorities
-- Always show "Next action" prominently ("Fix 2 failing tests", "Implement createTodo")
-- Keep lectures short and interactive
-- Make progress feel rewarding
+**Per-call context injection:**
+```
+System: stage-specific guardrails + persona
+Course context: relevant lecture section + todo spec
+User state: current code in the TODO region + failing test output
+Session memory: last N turns from chat/<submoduleId>.json
+Long-term memory: memory/user_profile.md + memory/decisions.md
+```
 
----
+**`memory/user_profile.md`** — updated by LLM after each submodule:
+- Learning style notes ("prefers analogies over formal definitions")
+- Strong/weak concept areas
+- Preferred hint level
+- Vocabulary that worked
 
-## 12. VS Code Extension
+**`memory/decisions.md`** — updated when user makes architecture choices:
+- Storage decisions, framework choices, skipped sections
 
-### Features
-- Sidebar panel: tree + submodule statuses
-- Webview panel: lecture/quiz/build result UI
-- Command palette: Start submodule, Run check, Get hint
-- Inline diagnostics: mark TODO regions incomplete, test failure references
-- CodeLens above TODO regions: "Get hint" / "Run check"
-
-### Cursor / Claude Code compatibility
-Not overriding their assistants. Winning by gating progress on checks and TODO completion.
+This gives continuity across the entire course without provider-native memory (which is opaque, cross-user, and vendor-locked).
 
 ---
 
-## 13. Observability for the Product Itself
+## 12. CLI Commands (MVP)
 
-Engine logs:
-- Request ID, route, duration
-- Submodule events: quiz pass/fail, check pass/fail, hint usage
+```
+learnmode init              Create repo + start engine + generate course spec
+learnmode ui                Open dashboard
+learnmode check <id>        Run check for a submodule
+learnmode hint <id> <todo> --level 2
+learnmode doctor            Verify env (node, docker, pnpm)
+```
 
-Local analytics file: `.learnmode/telemetry.jsonl` (opt-in)
+---
+
+## 13. Web UI (React) — Pages
+
+| Route | Page |
+|---|---|
+| `/` | Project start: request text input, create course |
+| `/tree` | Skill tree: colors, next action |
+| `/submodule/:id` | Tabs: Lecture \| Coding \| Compare (optional) \| Reflection |
+
+**Coding tab contains:**
+- "Run Prep" (first time)
+- TODO list
+- "Run Check"
+- Hints drawer
+- Side quest popups when triggered
 
 ---
 
@@ -316,22 +610,28 @@ codingpractice/
   apps/
     engine/               Node.js + TypeScript API server
     dashboard/            React frontend
-    vscode-extension/     VS Code / Cursor extension
+    vscode-extension/     VS Code / Cursor extension (post-MVP)
   packages/
-    core/                 Shared types + validators
+    core/                 Shared types + schema validators + file utils
     course-templates/
-      todo-pro/           MVP course content + template code
-        template/         Actual starter code (with TODO regions)
+      todo-pro/
+        template/         Starter code (with TODO regions)
         course/
           course.yaml
           submodules/<id>/
-            lecture.md
-            quiz.json
-            tasks.json
-            hints.json
-          tests_public/
-          tests_hidden/
-          benchmarks/
+            meta.json
+            lecture/
+              spec.md
+              spec.json
+            coding/
+              prep.json
+              todo.json
+              verify.json
+            sidequests/
+              index.json
+              quests/<questId>/...
+            reflection/
+              spec.json
   infra/
     docker/
   docs/
@@ -341,13 +641,53 @@ codingpractice/
 
 ---
 
-## 15. MVP Milestones
+## 15. Concrete Implementation Phases (Build Checklist)
 
-1. Engine skeleton + template init (CLI: `learnmode init`, `/tree`, `/content`, file-based state)
-2. Lecture + quiz (grading logic, gating)
-3. Gated TODO regions + check runner (TODO detection, test runner, structured report)
-4. Hints ladder (level policy, LLM-powered hints)
-5. Dashboard UI (tree view + submodule page + check results)
-6. One side quest with measurement (benchmark harness + compare UI)
-7. VS Code extension shell (tree, run check, diagnostics)
+### Phase 1: Repo skeleton
+- [ ] Create monorepo: `apps/engine`, `apps/dashboard`, `packages/core`
+- [ ] Define `CourseSpec` folder output format exactly as in Section 7
 
+### Phase 2: Course-level AI generation
+- [ ] Implement `course_init` pipeline: user request → generate module/submodule list + folders/files
+- [ ] For MVP: hardcode 1–2 submodules to unblock system wiring, then swap in LLM
+
+### Phase 3: Submodule agent workflows
+- [ ] `submoduleAgent.run(stage, submoduleId)` for all stages:
+  - lecture → read lecture specs → produce blocks for UI
+  - coding_prep → read prep/todo/verify → output unified diff patch + generate tests
+  - hint → read todo.json + code snippet + failing tests → return hint
+  - sidequest → read trigger hooks → suggest quest
+  - reflection → read reflection spec → guide response
+
+### Phase 4: Patch application + TODO protection
+- [ ] Parser to find TODO blocks by markers:
+  ```
+  // === LEARNMODE: TODO id=... ===
+  // === END ===
+  ```
+- [ ] Patch application: reject modifications inside TODO regions, enforce `allowedFiles`
+- [ ] Save patch to `.learnmode/generated/` and freeze
+
+### Phase 5: Check runner
+- [ ] TODO completion check
+- [ ] Run test commands via child process
+- [ ] Parse vitest output (file/line)
+- [ ] Return structured report for UI
+
+### Phase 6: Dashboard UI
+- [ ] Tree view with statuses
+- [ ] Submodule view: "Run Prep", "Run Check", show failures, hint ladder UI
+
+### Phase 7: One side quest
+- [ ] Simple trigger based on failing tests
+- [ ] Mini-submodule with own coding/prep/todo/verify/reflection
+
+---
+
+## 16. Principles (Keep You From Ideology Drift)
+
+1. **AI is a coach + scaffolder, not the solver**
+2. **Deterministic checks decide correctness** — not LLM judgment
+3. **Freeze generated artifacts** — course spec, patches, tests do not mutate mid-run
+4. **Side quests are triggered by real learner behavior** — not randomly offered
+5. **Progressive disclosure** — only show what's needed at the moment
