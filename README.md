@@ -8,8 +8,8 @@ AI-guided IDE learning system. Full design doc: [`docs/design.md`](docs/design.m
 
 Each day follows this structure:
 
-1. **Concepts first** — engineering principles, production context, design reasoning behind every decision
-2. **Build one step at a time** — one chunk of code at a time, never all steps at once. provide detailed explanation for every single code block
+1. **teach all concepts before anything else** — engineering principles, production context, design reasoning behind every decision. There should be around 10 concepts taught, each explained in detail with examples and relevant to what's building today.
+2. **then build one step at a time** — one chunk of code at a time, never all steps at once. provide detailed explanation for every single code block. There should be 5-10 steps, each step being a relatively large chunk of code or one file.
 3. **Reflection** — what felt hard, what to revisit
 
 **At the end of every day:** `notes/dayX/job.md` is created covering what we built, key concepts, design decisions, commands, and bugs learned.
@@ -87,8 +87,8 @@ Each day follows this structure:
 - Day 1: [x] Monorepo, TypeScript config, npm workspaces — carries over
 - Day 2: [x] TypeScript fundamentals: interfaces, generics, modules, async/await — carries over
 - Day 3: [x] Engine skeleton — Express, middleware pipeline, course graph types, health + tree routes. Notes: `notes/day3/`
-- Day 4: [ ]
-- Day 5: [ ]
+- Day 4: [x] Submodule filesystem spec + core types package + content loader + `/api/submodule/:id/meta`. Notes: `notes/day4/`
+- Day 5: [x] Zod runtime validation + AppError pipeline + reusable validation helper + standardized 400/404/500 responses. Notes: `notes/day5/`
 - Day 6: [ ]
 - Day 7: [ ]
 - Day 8: [ ]

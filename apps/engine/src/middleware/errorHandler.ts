@@ -1,23 +1,45 @@
-import {Request, Response, NextFunction} from "express";
+import { Request, Response, NextFunction } from "express";
+import { AppError, isAppError } from "../errors/AppError";
 
-export interface AppError extends Error {
-    statusCode?: number;
-}
+export function errorHandler(
+  err: unknown,
+  req: Request,
+  res: Response,
+  _next: NextFunction
+): void {
+  const requestId = req.headers["x-request-id"];
 
-export function errorHandler(err: AppError, req: Request, res: Response, next: NextFunction): void {
-    const statusCode = err.statusCode ?? 500;
-    const requestId = req.headers["x-request-id"] as string;
-
-    console.error(`[${requestId}] Error ${statusCode}: ${err.message}`, {
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-      });
-
-    res.status(statusCode).json({
-        error: {
-            message: err.message ?? "Internal server error",
-            requestId,
-        },
+  if (isAppError(err)) {
+    console.error(`[${requestId}] AppError ${err.statusCode} ${err.code}: ${err.message}`, {
+      details: err.details,
+      path: req.path,
+      method: req.method,
     });
+
+    res.status(err.statusCode).json({
+      error: {
+        code: err.code,
+        message: err.message,
+        details: err.details,
+        requestId,
+      },
+    });
+    return;
+  }
+
+  const fallbackMessage = err instanceof Error ? err.message : "Internal server error";
+
+  console.error(`[${requestId}] Unhandled error: ${fallbackMessage}`, {
+    rawError: err,
+    path: req.path,
+    method: req.method,
+  });
+
+  res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "Internal server error",
+      requestId,
+    },
+  });
 }

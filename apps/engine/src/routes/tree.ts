@@ -1,5 +1,9 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { CourseTree } from "../types/course";
+import { treeQuerySchema } from "../schemas/treeSchemas";
+import { ZodError } from "zod";
+import { AppError } from "../errors/AppError";
+import { validateOrThrow } from "../utils/validate";
 
 const router = Router();
 
@@ -146,8 +150,29 @@ const mockTree: CourseTree = {
   ],
 };
 
-router.get("/", (req: Request, res: Response): void => {
-  res.status(200).json(mockTree);
+router.get("/", (req: Request, res: Response, next: NextFunction): void => {
+    try {
+        const query = validateOrThrow(treeQuerySchema, req.query, "Invalid query parameters"); //req.query is includeLocked
+        // parse the query to try to fit to the schema(object), and access with query.includeLocked
+        const includeLocked = query.includeLocked === "true";
+
+        if (includeLocked) {
+            res.status(200).json(mockTree);
+            return;
+        }
+
+        const filteredTree: CourseTree = {
+            ...mockTree, // keeping previous entries in mockTree the same
+            modules: mockTree.modules.map((module) => ({
+                ...module,
+                submodules: module.submodules.filter((submodule) => submodule.status !== "locked"),
+            })),
+        };
+
+        res.status(200).json(filteredTree);
+    } catch (error: unknown) {
+        next(error); // passed down to the error handler middleware
+    }
 });
 
 export default router;
