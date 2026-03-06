@@ -89,7 +89,7 @@ Each day follows this structure:
 - Day 3: [x] Engine skeleton — Express, middleware pipeline, course graph types, health + tree routes. Notes: `notes/day3/`
 - Day 4: [x] Submodule filesystem spec + core types package + content loader + `/api/submodule/:id/meta`. Notes: `notes/day4/`
 - Day 5: [x] Zod runtime validation + AppError pipeline + reusable validation helper + standardized 400/404/500 responses. Notes: `notes/day5/`
-- Day 6: [ ]
+- Day 6: [x] File-based state persistence (`.learnmode/state.json`), state schemas, `StateService`, and status mutation endpoint (`POST /api/state/submodule/:id/status`). Notes: `notes/day6/`
 - Day 7: [ ]
 - Day 8: [ ]
 - Day 9: [ ]
