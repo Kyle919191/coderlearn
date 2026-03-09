@@ -92,7 +92,7 @@ Each day follows this structure:
 - Day 5: [x] Zod runtime validation + AppError pipeline + reusable validation helper + standardized 400/404/500 responses. Notes: `notes/day5/`
 - Day 6: [x] File-based state persistence (`.learnmode/state.json`), state schemas, `StateService`, and status mutation endpoint (`POST /api/state/submodule/:id/status`). Notes: `notes/day6/`
 - Day 7: [x] Dashboard workspace scaffolded (`apps/dashboard`) with React Router shell routes and Tailwind baseline styling. Notes: `notes/day7/`
-- Day 8: [ ]
+- Day 8: [x] Skill Tree page connected to live engine data (`GET /api/tree`), with loading/error/success states, status badges, and submodule navigation links. Notes: `notes/day8/`
 - Day 9: [ ]
 - Day 10: [ ]
 - Day 11: [ ]
