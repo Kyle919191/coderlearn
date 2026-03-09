@@ -93,7 +93,7 @@ Each day follows this structure:
 - Day 6: [x] File-based state persistence (`.learnmode/state.json`), state schemas, `StateService`, and status mutation endpoint (`POST /api/state/submodule/:id/status`). Notes: `notes/day6/`
 - Day 7: [x] Dashboard workspace scaffolded (`apps/dashboard`) with React Router shell routes and Tailwind baseline styling. Notes: `notes/day7/`
 - Day 8: [x] Skill Tree page connected to live engine data (`GET /api/tree`), with loading/error/success states, status badges, and submodule navigation links. Notes: `notes/day8/`
-- Day 9: [ ]
+- Day 9: [x] Lecture serving wired end-to-end: engine `/api/submodule/:id/lecture` endpoint + dashboard `SubmodulePage` fetch lifecycle and block rendering. Notes: `notes/day9/`
 - Day 10: [ ]
 - Day 11: [ ]
 - Day 12: [ ]

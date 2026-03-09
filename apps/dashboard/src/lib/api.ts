@@ -28,8 +28,35 @@ export interface CourseTreeResponse {
   modules: TreeModule[];
 }
 
+export interface LectureQuestion {
+  type: string;
+  prompt: string;
+}
+
+export interface LectureBlock {
+  type: "concept" | "example" | "common_mistakes" | "check_understanding";
+  id: string;
+  title?: string;
+  bullets?: string[];
+  items?: string[];
+  questions?: LectureQuestion[];
+  constraints?: Record<string, unknown>;
+}
+
+export interface LectureResponse {
+  submoduleId: string;
+  objectives: string[];
+  blocks: LectureBlock[];
+  quizSpec: {
+    enabled: boolean;
+    count: number;
+    types: string[];
+    passThreshold: number;
+  };
+}
+
 // Engine is the local backend service created in apps/engine (see app.ts route mounts).
-const ENGINE_BASE_URL = "http://localhost:3000";
+const ENGINE_BASE_URL = "http://localhost:3002";
 
 export async function fetchCourseTree(includeLocked = true): Promise<CourseTreeResponse> {
   // Calls engine GET /api/tree.
@@ -45,4 +72,13 @@ export async function fetchCourseTree(includeLocked = true): Promise<CourseTreeR
 
   // Response shape is expected to match engine CourseTree contract.
   return (await response.json()) as CourseTreeResponse;
+}
+
+export async function fetchSubmoduleLecture(submoduleId: string): Promise<LectureResponse> {
+  const response = await fetch(`${ENGINE_BASE_URL}/api/submodule/${submoduleId}/lecture`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch lecture: ${response.status}`);
+  }
+
+  return (await response.json()) as LectureResponse;
 }

@@ -27,3 +27,23 @@ router.get("/:id/meta", async (req: Request, res: Response, next: NextFunction):
 });
 
 export default router;
+
+router.get("/:id/lecture", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const params = validateOrThrow(submoduleIdParamSchema, req.params, "Invalid request parameters");
+
+    const lectureSpec = await loader.loadLectureSpec(params.id);
+    
+    res.status(200).json({
+      submoduleId: params.id,
+      objectives: lectureSpec.objectives,
+      blocks: lectureSpec.blocks,
+      quizSpec: lectureSpec.quizSpec,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ContentNotFoundError) {
+      return next(new AppError(404, "CONTENT_NOT_FOUND", error.message));
+    }
+    next(error);
+  }
+});

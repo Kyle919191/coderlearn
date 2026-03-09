@@ -1,6 +1,6 @@
 import { Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { fetchCourseTree, type CourseTreeResponse, type SubmoduleStatus } from "./lib/api";
+import { fetchCourseTree, fetchSubmoduleLecture, type CourseTreeResponse, type LectureResponse, type SubmoduleStatus } from "./lib/api";
 
 function AppLayout() {
   return (
@@ -180,14 +180,130 @@ function StatusBadge({ status }: { status: SubmoduleStatus }) {
 
 function SubmodulePage() {
   const { id } = useParams<{ id: string }>();
+  const [lecture, setLecture] = useState<LectureResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      setErrorMessage("Missing submodule id in route.");
+      setIsLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    const submoduleId = id;
+
+    async function loadLecture() {
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+        const data = await fetchSubmoduleLecture(submoduleId);
+        // user may leave the page during await, which trigggers cleanup function,
+        // then the if statement handles that perfectly
+        if (!isCancelled) {
+          setLecture(data);
+        }
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error while loading lecture";
+        if (!isCancelled) {
+          setErrorMessage(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadLecture();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold">Submodule</h2>
+        <p className="text-slate-600">Loading lecture...</p>
+      </section>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold">Submodule</h2>
+        <p className="text-red-600">Failed to load lecture: {errorMessage}</p>
+      </section>
+    );
+  }
+
+  if (!lecture) {
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold">Submodule</h2>
+        <p className="text-slate-600">No lecture data available.</p>
+      </section>
+    );
+  }
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-xl font-semibold">Submodule</h2>
-      <p className="text-slate-700">
-        Current submodule id: <code className="rounded bg-slate-200 px-1 py-0.5">{id}</code>
-      </p>
-      <p className="text-slate-600">(Day 9+ will render lecture/coding/reflection tabs.)</p>
+    <section className="space-y-5">
+      <header className="space-y-1">
+        <h2 className="text-xl font-semibold">Submodule Lecture</h2>
+        <p className="text-slate-600">
+          Submodule id: <code className="rounded bg-slate-200 px-1 py-0.5">{lecture.submoduleId}</code>
+        </p>
+      </header>
+
+      <section className="space-y-2">
+        <h3 className="text-lg font-semibold">Learning Objectives</h3>
+        <ul className="list-disc space-y-1 pl-5 text-slate-700">
+          {lecture.objectives.map((objective, idx) => (
+            <li key={`${lecture.submoduleId}-objective-${idx}`}>{objective}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold">Lecture Blocks</h3>
+        {lecture.blocks.map((block) => (
+          <article key={block.id} className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">{block.type}</p>
+            {block.title ? <h4 className="mt-1 font-semibold">{block.title}</h4> : null}
+
+            {block.bullets ? (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
+                {block.bullets.map((bullet, idx) => (
+                  <li key={`${block.id}-bullet-${idx}`}>{bullet}</li>
+                ))}
+              </ul>
+            ) : null}
+
+            {block.items ? (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
+                {block.items.map((item, idx) => (
+                  <li key={`${block.id}-item-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+
+            {block.questions ? (
+              <ul className="mt-2 space-y-1 text-slate-700">
+                {block.questions.map((question, idx) => (
+                  <li key={`${block.id}-question-${idx}`}>
+                    <span className="font-medium">Q{idx + 1}:</span> {question.prompt}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        ))}
+      </section>
     </section>
   );
 }
